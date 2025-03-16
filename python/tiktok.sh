@@ -1,6 +1,10 @@
 #!/bin/bash
 
+# Enable strict mode
+set -euo pipefail
+IFS=$'\n\t'
 
+# Color definitions
 YELLOW=$(tput setaf 3)
 GREEN=$(tput setaf 2)
 RED=$(tput setaf 1)
@@ -9,42 +13,38 @@ GGG=$(tput setaf 5)
 CYN=$(tput setaf 7)
 STAND=$(tput sgr 0)
 BOLD=$(tput bold)
- 
- 
- 
- 
-GET="$1"
-pwd=$(pwd)
-GET="$1"
 
+# URL validation function
+validate_tiktok_url() {
+    local url="$1"
+    if [[ ! "$url" =~ ^https?://(www\.)?tiktok\.com/@[A-Za-z0-9._-]+/video/[0-9]+ ]]; then
+        echo -e "${RED}${BOLD}Error: Invalid TikTok URL format${STAND}"
+        exit 1
+    fi
+}
 
+# Sanitize function for filenames
+sanitize_filename() {
+    echo "$1" | sed 's/[^A-Za-z0-9._-]/_/g'
+}
 
-if [ -z ${GET} ]; then #|| [ -z $POST ] ; then
-
-    echo -e "$YELLOW$BOLD Missing video link URL:$STAND$BOLD bash $0 https://www.tiktok.com/@_fucktiktok/video/1234567890$STAND"
-
-    exit
-
+# Input validation
+if [ -z "${1:-}" ]; then
+    echo -e "${YELLOW}${BOLD}Missing video link URL:${STAND}${BOLD} bash $0 https://www.tiktok.com/@username/video/1234567890${STAND}"
+    exit 1
 fi
 
+# Validate and sanitize input
+validate_tiktok_url "$1"
 
+# Extract and sanitize components
+test=$(echo "$1" | cut -d '/' -f5)
+user=$(echo "$1" | cut -d '/' -f4 | sed 's/^@//' | tr -cd 'A-Za-z0-9._-')
+id=$(echo "$1" | cut -d '/' -f6 | cut -d '?' -f1 | tr -cd '0-9')
 
-
-test=`echo ${GET} | cut -d '/' -f5`
-user=$(echo $1 | cut -d '/' -f 4)
-id=$(echo $1 | cut -d '/' -f 6 | cut -d '?' -f 1)
-
-if [ ${test} == "video" ]; then
-    aria2c -m 0 -x 10 -c https://tikwm.com/video/media/hdplay/${id}.mp4 -o ${user}-${id}.mp4
+if [ "${test}" == "video" ]; then
+    aria2c -m 0 -x 10 -c "https://tikwm.com/video/media/hdplay/${id}.mp4" -o "$(sanitize_filename "${user}-${id}.mp4")"
+else
+    echo -e "${RED}${BOLD}Error: Invalid URL format or parameters${STAND}"
+    exit 1
 fi
-
-
-
-if [ ${test} == "photo" ]; then
-    for x in `curl -sk 'https://tikwm.com/api/?url='${id}'&count=12&cursor=0&web=1&hd=1' | tr '"' '\n' | grep https | grep -i '.jpeg'  | tr -d '\\'`;do y=$(echo -e ${x} | cut -d '&' -f4 | cut -d '=' -f2); wget -c ${x} -O ${user}-${y}.jpeg;done
-
-fi
-
-#if [ ${test} == "photo" ]; then
-#    wget $(curl -sk 'https://tikwm.com/api/?url='${id}'&count=12&cursor=0&web=1&hd=1' | tr '"' '\n' | grep https | grep -i '.jpeg'  | tr -d '\\')
-#fi
