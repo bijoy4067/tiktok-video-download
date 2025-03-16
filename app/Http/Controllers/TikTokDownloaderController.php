@@ -15,7 +15,7 @@ class TikTokDownloaderController extends Controller
 
     public function getFile($filename)
     {
-        $filePath = storage_path('app/downloads/' . $filename);
+        $filePath = storage_path('app/public/downloads/' . $filename);
         
         if (!file_exists($filePath)) {
             return back()->with('error', 'File not found');
@@ -33,8 +33,8 @@ class TikTokDownloaderController extends Controller
         try {
             $scriptPath = base_path('python/tiktok.sh');
             
-            // Create downloads directory in storage
-            $downloadPath = storage_path('app/downloads');
+            // Create downloads directory in public storage
+            $downloadPath = storage_path('app/public/downloads');
             if (!file_exists($downloadPath)) {
                 mkdir($downloadPath, 0755, true);
             }
@@ -62,17 +62,18 @@ class TikTokDownloaderController extends Controller
             \Log::info('Command Output:', $output);
             
             $filePath = $downloadPath . '/' . $filename;
+            $publicUrl = asset('storage/downloads/' . $filename);
 
             if (!file_exists($filePath)) {
                 \Log::error('File not found after download attempt');
                 return back()->with('error', 'Video download failed. Please try again.');
             }
 
-            // Return success message with filename
+            // Return success message with filename and public URL
             return back()
                 ->with('success', 'Video processed successfully! Click the button below to download.')
-                ->with('filename', $filename);
-
+                ->with('filename', $filename)
+                ->with('download_url', $publicUrl);
         } catch (\Exception $e) {
             \Log::error('Download Error: ' . $e->getMessage());
             return back()->with('error', 'An error occurred during download. Please try again.');
