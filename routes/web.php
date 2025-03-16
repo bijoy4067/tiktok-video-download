@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+use App\Http\Controllers\TikTokDownloaderController;
+
+Route::get('/', [TikTokDownloaderController::class, 'index'])->name('tiktok.index');
+Route::post('/download', [TikTokDownloaderController::class, 'download'])->name('tiktok.download');
+Route::get('/download/{filename}', [TikTokDownloaderController::class, 'getFile'])->name('tiktok.get-file');
