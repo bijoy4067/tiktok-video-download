@@ -13,10 +13,14 @@ class TikTokDownloaderController extends Controller
         return view('tiktok.index');
     }
 
-    public function getFile($filename)
+    public function getFile(Request $request)
     {
-        $filePath = storage_path('app/public/downloads/' . $filename);
-        
+        $request->validate([
+            'filename' => 'required|string'
+        ]);
+
+        $filePath = storage_path('app/public/downloads/' . $request->filename);
+
         if (!file_exists($filePath)) {
             return back()->with('error', 'File not found');
         }
@@ -32,7 +36,7 @@ class TikTokDownloaderController extends Controller
 
         try {
             $scriptPath = base_path('python/tiktok.sh');
-            
+
             // Create downloads directory in public storage
             $downloadPath = storage_path('app/public/downloads');
             if (!file_exists($downloadPath)) {
@@ -44,12 +48,13 @@ class TikTokDownloaderController extends Controller
             $user = $url_parts[3] ?? '';
             $id = $url_parts[5] ?? '';
             $filename = "{$user}-{$id}.mp4";
-            
+
             // Sanitize and escape the URL
             $escapedUrl = escapeshellarg($request->url);
-            
+
             // Execute bash script using exec with escaped URL
-            $command = sprintf("cd %s && bash %s %s 2>&1", 
+            $command = sprintf(
+                "cd %s && bash %s %s 2>&1",
                 escapeshellarg($downloadPath),
                 escapeshellarg($scriptPath),
                 $escapedUrl
@@ -57,11 +62,11 @@ class TikTokDownloaderController extends Controller
             $output = [];
             $returnVar = 0;
             exec($command, $output, $returnVar);
-            
+
             // Log the output for debugging
             \Log::info('Command Output:', $output);
-            
-            $filePath = $downloadPath . '/' . $filename;
+
+            $filePath = '/storage/downloads/' . $filename;
             $publicUrl = asset('storage/downloads/' . $filename);
 
             if (!file_exists($filePath)) {
